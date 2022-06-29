@@ -48,3 +48,36 @@ Batch: 일괄, Processing: 처리
 - 실시간으로 쏟아지는 데이터를 계속 처리하는 것
 - 이벤트가 생길 때, 데이터가 들어올 때 마다 처리
 - 불규칙적으로 데이터가 들어오는 환경
+
+---
+실습 환경 구비
+
+설치 프로그램
+1. Python(anaconda)
+2. java 설치(oracle jdk 11) - Spark 구성 언어
+3. Hadoop winutils 2.7.7 - Hadoop 환경 간접 설정
+4. apache spark 
+
+환경 변수 설정
+1. PYSPARK_PYTHON
+2. JAVA_HOME
+3. HADOOP_HOME
+4. SPARK_HOME
+---
+
+#### Spark를 이용한 학생 수 카운트
+
+* SparkConf: Spark 설정 옵션 객체, 주로 SparkContext 설정
+   - setMaster: Spark가 실행될 위치 설청, local 또는 분산(HDFS) 등을 사용
+   - setAppName: 스파크에서 작업할 어플리케이션의 이름, 웹 환경(Spark UI)에서 확인이 가능하다
+* SparkContext: Spark 클러스터와 연결 시켜주는 객체
+   - Spark의 모든 기능에 접근할 수 있는 시작점
+   - Spark는 분산 환경에서 동작하기 때문에 Driver Program을 구동시키기 위해서는 SparkContext가 필요하다
+   - SparkContext는 프로그램당 하나만 만들수 있고, 사용후에는 종료해야 한다
+
+* SparkContext 작동 과정
+   - SparkContext 객체의 내부는 자바로 동작하는 Py4j의 SparkContext와 소켓을 통해 연결된다.
+   - Py4j란 Python되어 있는 코드를 Spark에서 구동 가능한 java 형태의 스칼라로 변환
+   - RDD를 만들 수 있다.(Spark에서 사용하는 데이터 구조)
+
+
