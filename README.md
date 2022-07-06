@@ -80,4 +80,85 @@ Batch: 일괄, Processing: 처리
    - Py4j란 Python되어 있는 코드를 Spark에서 구동 가능한 java 형태의 스칼라로 변환
    - RDD를 만들 수 있다.(Spark에서 사용하는 데이터 구조)
 
+```Python
+from pyspark import SparkConf, SparkContext
+
+conf = SparkConf().setMaster("local").setAppName("country-student-counts")
+
+sc = SparkContext(conf=conf)
+
+directory = "C:\\Users\\sonjj\\study_spark\\data"
+filename = "xAPI-Edu-Data.csv"
+
+lines = sc.textFile("file:///{}\\{}".format(directory, filename))
+lines
+
+header = lines.first()
+header
+
+datas = lines.filter(lambda row : row != header)
+datas
+
+# collect(): 실제 데이터 확인
+datas.collect()[:3]
+
+#국적만 추출하기
+countries = datas.map(lambda row : row.split(',')[2])
+countries
+
+countries.collect()[:3]
+
+#국적 count
+result = countries.countByValue()
+result
+
+#시각화
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+series = pd.Series(result, name='countries')
+series
+
+plt.figure(figsize=(15, 10))
+sns.barplot(x=series.index, y=series.values)
+plt.show()
+```
+---
+
+Hadoop
+1. HDFS
+   1. 파일 시스템(분산 저장)
+2. Map Reduce
+   1. 연산 엔진
+   2. 데이터 집계
+   3. Spark의 주 기능
+3. Yarn
+   1. 리소스 관리
+   2. 클러스터 관리
+
+<img src = "CPUFlow.png">
+
+- 컴퓨터 작업 시 HDD/SSD에서 CPU로 데이터가 이동한다.
+- 연산에 자주 사용되는 데이터는 위쪽에 저장
+- 연산에 자주 사용되지 않는 데이터는 아래쪽에 저장
+- HDD/SSD로 갈수록 용량은 크지만 처리 속도가 현저히 느려지기 때문에 데이터를 어디에 저장할지 잘 판단해야 한다.
+
+<img src = "flow.png">
+
+- RAM에서 처리하기 힘든 크기의 데이터는 HDD/SSD와 연동하여 처리
+- RAM에서 입부 연산할 데이터를 RAM에 적재, 연산 후 결과를 디스크에 저장
+- 단, 속도가 현저히 느려진다
+
+<img src = "Datasplit.png">
+
+- LEADER에서 FOLLOWER을 관리하고, 데이터를 분산하여 전송
+- FOLLOWER에서는 LEADER에서 넘겨준 데이터를 받아 실질적인 연산을 처리한다
+
+* Spark에서의 Cluster
+  - LEADER역할을 하는 Cluster에서 Dirver Program은 각각의 Worker Node에 연산(Task)을 할당해준다.
+  - Worker Node(Follower) Cluster에서는 Executor에서 작업을 수행하고 이를 Cache에 저장한다.
+  - Cluster Manager는 어떤 Worker Node에서 Task를 빠르게 수행할 수 있는지 판단하여 분배하는 역할을 한다.
+
+
 
