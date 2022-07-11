@@ -160,5 +160,16 @@ Hadoop
   - Worker Node(Follower) Cluster에서는 Executor에서 작업을 수행하고 이를 Cache에 저장한다.
   - Cluster Manager는 어떤 Worker Node에서 Task를 빠르게 수행할 수 있는지 판단하여 분배하는 역할을 한다.
 
+* Lazy Evaluation
+  - Task를 정의할 때 연산을 바로 하지 않고, 결과가 필요할 때 연산을 수행한다, 연산 과정을 최적화 한다
+
+* Resilient Distribute Dataset(RDD)
+- 탄력적 분산 데이터 세트
+- 분산된 노드에 걸쳐서 저장 된다
+- 변경이 불가능하다
+- 여러 개의 파티션으로 분리 될 수 있다
+- 데이터 추상화: 데이터를 여러 클러스터에 저장하지만 하나의 파일에 존재하는 것 처럼 사용한다
+- 데이터가 불변하면 문제 발생 시 복원이 쉽다
+- RDD는 변환을 거치면 기존의 RDD가 변하는 것이 아닌 변경된 새로운 RDD가 만들어 진다(Immutable): 비순환 그래프
 
 
