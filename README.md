@@ -172,4 +172,95 @@ Hadoop
 - 데이터가 불변하면 문제 발생 시 복원이 쉽다
 - RDD는 변환을 거치면 기존의 RDD가 변하는 것이 아닌 변경된 새로운 RDD가 만들어 진다(Immutable): 비순환 그래프
 
+* Data-Parallel 작동 방식(병렬 처리)
+1. 빅 데이터를 여러 개로 나눈다
+2. 여러 쓰레드에서 각자 task를 수행한다
+3. 각각의 결과물을 합친다
+    
+* Distributed Data-Parallel 작동 방식(병렬 처리)
+1. 더 큰 빅 데이터의 경우 데이터를 나누어 여러 노드로 보낸다
+2. 여러 노드에서 독립적으로 task를 수행한다
+3. 각 노드의 task 결과물을 합친다
 
+* 분산 처리의 문제
+1. 부분 실패 믄제
+   - 노드 몇 개가 프로그램과 상관 없는 외부적인 요인으로 실패
+   - 네트워크 병목현상, 정전, 침수 등 물리적인 원인도 포함된다
+2. 속도
+   - 많은 네트워크 통신을 필요로 하는 작업의 경우 속도가 저하된다
+
+filter: 조건에 맞는 데이터 찾기
+reduceByKey: 여러 노드의 데이터를 불러와 하나로 합친다
+
+```Python
+RDD.map(<A>).filter(<B>).reduceByKey(<C>).take(100)
+RDD.map(<A>).filter(<B>).recudeByKey(<C>).take(100)
+# 조건에 맞는 데이터를 고른 후 합치는 것이 속도가 빠르다
+```
+
+* Key-Value RDD
+- (Key, Value) 쌍을갖기 때문에 Pairs RDD라고도 한다
+- Key를 기준으로 고차원적인 연산이 가능하다
+  - Single Value RDD는 단순한 연산을 수행한다
+- Key Value RDD는 다양한 집계 연산이 가능하다
+
+```Python
+# Key-Value RDD Reduction(줄이다) 연산
+reduceByKey(<task>): key를 기준으로 task 처리
+groupbyKey(): key를 기준으로 value 묶기
+sortByKey(): key를 기준으로 정렬
+keys(): key 추출
+values(): value 추출
+mapValues(): Kye에 대한 변경이 없을 경우
+flatMapValues()
+```
+ex)
+<img src = "reduction.png">
+
+* Transformation
+   - Narrow Transfromation
+     - 1:1 변환
+     - filter(), map(), flatMap(), sample(), union()
+   - Shuffling
+     - 결과 RDD의 파티션에서 다른 파티션의 데이터가 들어갈 수 있다
+     - reducebyKey(), groupByKey(), cartesian, distinct, Intersection, sort
+
+```Python
+from pyspark import SparkConf, SparkContext
+
+conf = SparkConf().setMaster("local").setAppName("restaurant-review-average")
+sc = SparkContext(conf=conf)
+
+directory = "C:\\Users\\sonjj\\study_spark\\data"
+filename = "restaurant_reviews.csv"
+
+lines = sc.textFile(f"file:///{directory}\\{filename}")
+lines.collect()
+header = lines.first()
+filtered_lines = lines.filter(lambda row : row != header)
+filtered_lines.collect()
+
+def parse(row):
+    fields = row.split(",")
+    
+    category = fields[2]
+    # reviews는 점수로 parse
+    reviews = fields[3]
+    reviews = int(reviews)
+    
+    return category, reviews
+
+parse('0,짜장면,중식,125')
+# RDD 내의 모든 row에 대해 'parse' 함수를 적용 후 추출(map)
+category_reviews = filtered_lines.map(parse)
+category_reviews.collect()
+
+#카테고리 별 리부 평균
+category_review_count = category_reviews.mapValues(lambda x: (x,1))
+# 리뷰의 개수를 구하기 위해 x 함수를 추가
+category_review_count.collect()
+reduced = category_review_count.reduceByKey(lambda x, y: (x[0] + y[0], x[1] + y[1]))
+average = reduced.mapValues(lambda x: x[0]/x[1])
+
+sc.stop()
+```
