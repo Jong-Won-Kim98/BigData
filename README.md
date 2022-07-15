@@ -221,9 +221,14 @@ ex)
    - Narrow Transfromation
      - 1:1 변환
      - filter(), map(), flatMap(), sample(), union()
+     - map(<func>): <finc> 함수가 적용된 새로운 RDD가 만들어 진다
+     - flatmap(<func>): map의 모든 결과를 1차원 배열 형색으로 평평(flat)하게 나타낸다
+   - Wide Transformations
+     - groupBy(<func>)
    - Shuffling
      - 결과 RDD의 파티션에서 다른 파티션의 데이터가 들어갈 수 있다
      - reducebyKey(), groupByKey(), cartesian, distinct, Intersection, sort
+ - 모든 변한 데이터를 master에 return하여 master에서 확인 할 수 있다
 
 ```Python
 from pyspark import SparkConf, SparkContext
@@ -264,3 +269,82 @@ average = reduced.mapValues(lambda x: x[0]/x[1])
 
 sc.stop()
 ```
+
+* parallelize([item1, item2, item3, ...])
+   - 파이썬 리스트를 이용한 RDD 생성
+
+```Python
+foods = sc.parallelize(["짜장면", "마라탕", "짬뽕", "떡볶이", "쌀국수", "짬뽕", "짜장면"])
+foods
+```
+
+* countByValue()
+   - 각 데이터별 개수 count
+
+```Python
+foods.countByValue()
+```
+
+* take(n)
+   - 상위 n개의 데이터 가져오기
+
+```Python
+foods.take(3)
+```
+
+* first()
+   - 처음 1개의 데이터 가져오기
+
+```Python
+foods.first()
+```
+
+* count()
+   - RDD 내 전체 데이터 개수 세기
+
+```Python
+foods.count()
+```
+
+* distinct()
+   - 중복 데이터를 제거한 RDD 새로 생성하는 transformation
+
+```Python
+fd = foods.distinct()
+fd
+```
+
+* foreach(<func>)
+   - action의 한 종류지만 worker에서 일어난 연산을 master로 return하지 않는다
+   - Driver Program(SparkContext)에서 실행하는 것이 아니기 때문에 SpakrContext에서 확인할 수 없다
+   - worker 노드에서 실행된다
+   - RDD 연산을 하고 난 후 log를 저장할 때 유용하다
+
+```Python
+foods.foreach(lambda x : print(x))
+```
+
+* 집합 Transformation
+   - 교집합(intersection)
+   - 합집합(union)
+   - 차집합(subtract)
+
+```Python
+num1.intersection(num2).collect()
+# 교집합
+num1.union(num2).collect()
+# 합집합
+num1.subtract(num2).collect()
+# 차집합
+```
+
+* 데이터 랜덤 추출
+   - sample(withReplacement, graction, seed=None)
+   - 데이터에서 일부분을 추출
+   - withReplacement
+     - True: 한 번 샘플링 된 데이터가 다시 대상이 된다
+     - False: 한 번 샘플링 된 데이터가 다시 대상이 되지 않는다
+   - fraction: 샘플링 된 데이터의 개딧값(확률)
+     - 각각의 데이터가 추출될 확률
+     - 높아지면 높아질 수록 원본에서 샘플링되는 원소의 개수가 많아진다
+   - seed: 랜덤을 고정해서 항상 같은 결과가 나올 수 있도록한다
