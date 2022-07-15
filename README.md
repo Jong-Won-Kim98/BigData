@@ -348,3 +348,56 @@ num1.subtract(num2).collect()
      - 각각의 데이터가 추출될 확률
      - 높아지면 높아질 수록 원본에서 샘플링되는 원소의 개수가 많아진다
    - seed: 랜덤을 고정해서 항상 같은 결과가 나올 수 있도록한다
+
+* Transformations & Actions
+- Trnsformations: 새로운 RDD 반환(지연 실행(Lazy Execution))
+  - 메모리를 최대한 활용할 수 있다
+  - 데이터를 다루는 task는 반복되는 경우가 많다 
+  - Cache(), Persist(): 데이터를 메모리에 저장해두고 사용이 가능하다
+- Actions: 연산 결과 출력 및 저장(즉시실행(Eager Execution))
+  
+* Storage Level
+1. MEMORY_ONLY
+   - MEMORY(RAM)에서만 데이터를 올려 놓기
+2. MEMORY_AND_DISK
+   - MEMORY, DISK 동시에 데이터를 올려 놓기
+   - 메모리에 용량이 부족하면 DISK에 데이터를 올려 놓는다
+3. MEMORY_ONLY_SER, MEMORY_AND_DISK_SER
+   - SER은 Serialization의 약자, 저장되는 데이터의 용량을 아끼기 위해 직렬화를 수행한다
+   - 저장하는 용량은 줄어들지만, 데이터를 읽어올 때 Deserialization이 수행되어야 하기 때문에 데이터를 불러오는 시간이 늘어날 수 있다.
+
+* Cache
+   - default Storage Lvevel을 사용한다
+   - RDD: MEMORY_ONLY
+   - DataFrame(DF): MEMORY_AND_DISK
+* Persist
+   - Storage Leel을 사용자가 원하는 대로 지정이 가능하다
+
+* persist를 사용하지 않는 방식
+```Python
+categoryReviews = filtered_lines.map(parse)
+# transformations을 수행할 RDD 생성
+categoryReviews.collect()
+
+result1 = categoryReviews.take(10)
+# action을 곧바로 실행
+result2 = categoryReviews.mapValues(lambda x : (x, 1)).collect()
+```
+
+categoryReview는 result1, result2 두번 만들어 지기 때문에 메모리 낭비가 발생한다, 데이터를 꺼내올 뿐 변경은 일어나지 않기 때문에 persist를 이용해 categoryReivews를 메모리에 넣어 놓는다
+
+* persistd 이용
+```Python
+categoryReviews = filtered_lines.map(parse).persist()
+# categoryReviews RDD는 하나만 존재하는 RDD
+categoryReviews
+
+result1 = categoryReviews.take(10)
+result2 = categoryReviews.mapValues(lambda x : (x,1)).collect()
+```
+
+* Cluster Toplogy
+   - 스파크는 MAster - Worker Topology로 구성되어 있다
+   - 항상 데이터가 여러 곳에 분산되어 있다
+   - 같은 연산 이라도 여러 노드에 걸쳐서 실행될 수 있다
+   - 분산된 위치에는 Worker가 존재, Master가 내리는 명령을 수행한다
