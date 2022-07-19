@@ -436,3 +436,140 @@ result2 = categoryReviews.mapValues(lambda x : (x,1)).collect()
      - 파티션 내에서 벌어지는 연산을 담당
    - combOp: 모든 결과를 하나로 합쳐주는 연산을 담당
    - 파티션 단위의 연산 결과를 합쳐주는 과정을 거치게 된다
+
+* K-Value RDD
+- 대부분의 Operation이 Transformations이다
+  - K-Value RDD의 처리 과정의 결과값이 파티션이 유지가 되지 않더라도 값이 큰 경우가 많기 때문
+
+Operations
+- groupByKey
+  - KeyValueRDD.groupByKey()
+  - 그룹핑 후 특정 Transformations 같은 연산
+  - key 값이 있는 상태에서 시작
+```Python
+rdd = sc.parallelize([
+    ("짜장면", 15),
+    ("짬뽕", 10),
+    ("짜장면", 5)
+])
+
+g_rdd = rdd.groupByKey()
+# 정해진 key값을 기준으로 데이터를 모아준다
+g_rdd.collect()
+```
+- groupBy()
+  - RDD.groupBy(numPartitions=None, partitionFunc=<function prtable_hash>)
+  - 함수에 의해서 그룹이 생기는 연산
+```Python
+grouped = sc.parallelize([
+    "c",
+    "python",
+    "c++",
+    "java",
+    "SCR"
+]).groupBy(lambda x : x[0]).collect()
+# groupBy는 자신의 조건 func를 넣어 key를 생성해 데이터를 묶어준다
+grouped
+```
+- Tranformations
+  - 실제로 연산되지 않는다
+
+* recudeByKey
+   - KeyValueRDD.reduceByKey(<func>), numPartitions = None, partitionsFunc=(<function portable_hash>)
+   - 주어진 key를 기준으로 Group을 만들고 합친다
+   - groupByKey + reduce
+   - Transformations 함수
+```Python
+from operator import add
+
+rdd = sc.parallelize([
+    ("짜장면", 15),
+    ("짬뽕", 10),
+    ("짜장면", 5)
+])
+
+rdd.reduceByKey(add).collect()
+```
+
+* mapValues
+   - keyValueRDD.mapValues(<func>)
+   - 함수를 Values에만 적용
+   - 파티션과 key는 원래 위치 그대로 유지
+   - Transformations 작업
+```Python
+rdd = sc.parallelize([
+    ("하의", ["청바지", "반바지", "치마"]),
+    ("상의", ["니트", "반팔", "나시", "긴팔"])
+])
+    
+rdd.mapValues(lambda x : len(x)).collect()
+# key가 아닌 value에만 적용할 함수를 만들 수 있기 때문에 데이터의 파티션이 변경될 걱정이 없다
+```
+
+* countbyKey
+   - keyValueRDD.countByKey(<func>)
+   - 각 키가 가진 요소들의 개수를 센다
+   - Action
+```Python
+rdd = sc.parallelize([
+    ("하의", ["청바지", "반바지", "치마"]),
+    ("상의", ["니트", "반팔", "나시", "긴팔"])  
+])
+
+rdd.countByKey()
+#key를 기준으로 count
+```
+
+* keys()
+   - 모든 key를 가진 RDD를 생성
+   - 파티션을 유지, 키가 많은 경우 Transformations 작업이다
+
+
+* Join Transformations
+- 여러 개의 RDD를 합치는데 사용
+  - Inner Join
+    - 서로 존재하는 키만 합쳐진다
+  - Outer Join
+    - 기준인 한 쪽에는 데이터, 다른 쪽에는 데이터가 없는 경우
+    - 설정한 기준에 따라서 기준에 맞는 데이터가 항상 남아있다
+    - leftOuterJoin: 왼쪽에 있는 rdd가 기준이 된다(함수를 호출하는 rdd)
+    - rightOuterJoin: 오른쪽에 있는 rdd가 기준이 된다(함수에 매개변수로 들어가있는 쪽)
+```Python
+rdd1= sc.parallelize([
+    ("foo", 1),
+    ("goo", 2),
+    ("hoo", 3)
+])
+
+rdd2 = sc.parallelize([
+    ("foo", 1),
+    ("goo", 2),
+    ("goo", 4),
+    ("moo", 6)
+])
+
+rdd1.join(rdd2).collect()
+
+#outer join
+rdd1.leftOuterJoin(rdd2).collect()
+# rdd1을 기준으러 join 따라서 'hoo'가 join 되고 rdd2에 없기 때문에 None으로 처리한다
+
+rdd1.rightOuterJoin(rdd2).collect()
+# rdd2를 기준으로 join하기 때문에 'moo'가 join 되고 rdd1에 없기 때문에 None 처리된다
+```
+
+* Shuffling
+   - 데이터를 그룹화 할 때 데이터를 한 노드에서 다른 노드로 옮길 때 발생한다
+   - 성능을 저하시킨다(여러 네트워크 연산을 일으키기 때문에 네트워크 코스트가 크다)
+   - Join, Reduction, Distinct, ...
+   - 결과로 나오는 RDD가 원본 RDD의 다른 요소 또는 다른 RDD를 참조해야 할 때 발생한다
+   - shuffle 최소화
+     - 미리 파티션을 만들어 주고 캐싱 후 reduceByKey를 실행
+     - 미리 파티션을 만들어 두고 캐싱 후 join 실행
+     - 둘 다 파티션과 캐싱을 조합해서 최대한 로컬 환경(IN-MEMORY)에서 연산이 실행되도록 하는 방식(각 파티션에서 연산이 진행)
+
+* Partition
+   - 데이터를 최대한 균일하게 퍼트린다
+   - 쿼리가 같이 되는 데이터를 최대한 옆에 두어 검색 성능을 향상 시킨다
+   - Key-Value RDD일 때만 의미가 있다
+     - 일반 RDD의 경우 어차피 어떤 데이터를 가져오기 위해서 처음부터 검색해야 한다
