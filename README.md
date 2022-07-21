@@ -573,3 +573,41 @@ rdd1.rightOuterJoin(rdd2).collect()
    - 쿼리가 같이 되는 데이터를 최대한 옆에 두어 검색 성능을 향상 시킨다
    - Key-Value RDD일 때만 의미가 있다
      - 일반 RDD의 경우 어차피 어떤 데이터를 가져오기 위해서 처음부터 검색해야 한다
+   - 하나의 노드는 여러 개의 파티션을 가질 수 있다
+   - Hash Partitioning
+     - 데이터를 여러 파티션에 균일하게 분배하는 방식, keys를 비교해 비슷한 key는 근접하게 저장한다
+     - skew: Hask Partitioning으로 데이터를 분리했을 때 데이터가 극단적으로 몰리는 현상
+   - Range Partitioning
+     - 순서가 있는 정렬된 파티셔닝
+   - 디스크에서 파티션
+     - partitionBy() - 주로 이용
+       - Transformations: 바로 실행되지 않고 RDD를 생성한다는 약속만 갖는다
+       - 파티션 생성 후 persist(), cache()를 실행하지 않을 경우 다음 연산에 불릴 때 마다 반복하게 되어 셔플링이 반복적으로 계속 일어난다
+   ```Python
+   '''
+   glom(): 파티션 별 데이터 확인
+   partitionsBy(n): n개의 파티션으로 데이터를 나눈다 
+   '''
+   paris.partitionBy(2).glom().collect()
+
+   # func을 기준으로 파티션을 2개로 나눈다
+   paris.partitionBy(2, lambda x : x % 2).glom().collect()
+
+   '''
+   파티션 생성 후 persist()를 실행하지 않을 경우 파티션 생성 코드가 계속
+   반복된다(셔플링이 반복적으로 일어난다)
+   '''
+   paris.partitionBy(2, lambda x : x % 2).persist().glom().collect()
+   ```
+   - 메모리에서 파티션
+   * Repartitions(), coalesce() 둘 다 파티션 개수를 조절하는 함수로 Shuffling을 동반하기 때문에 코스트가 높은 작업이다
+     - repartition()
+       - 파티션의 크기를 줄이거나 늘리는데 사용된다
+     - coalesce()
+       - 파티션의 크기를 줄이는데 사용된다
+       - 줄이는 작업의 경우 coalesce()가 더 효율적이다
+     - map(), flatMap()
+       - 키의 변형이 가능하기 때문에 데이터의 파티션이 변경될 여지가 있다
+     - mapValues(), flatMapValues()
+       - 파티션이 잘 정의 되어 있고, 파티션이 변경되기를 원하지 않을 경우 바람직하다
+
