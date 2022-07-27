@@ -673,3 +673,46 @@ rdd1.rightOuterJoin(rdd2).collect()
    - 데이터 프레임을 RDBMS의 테이블 처럼 사용하기 위해 위 함수를 이용해 tempoary view를 만들어줘야 한다
    - Spark SQL을 사용할 수 있게 된다
 
+```Python
+# 1. Inner Join -> Filter by moive -> Filter By attendance
+movie_att = movies_rdd.join(attendances_rdd)
+movie_att.filter(
+    lambda x: x[1][0][1] == "마블" and x[1][1][0] > 5000000
+).collect()
+```
+
+```Python
+# 2. Filter By Movie, Filter By attendance -> inner Join(추천)
+filtered_movies = movies_rdd.filter(lambda x : x[1][1] == "마블")
+filtered_att = attendances_rdd.filter(lambda x : x[1][0] > 5000000)
+filtered_movies.join(filtered_att).collect()
+```
+
+```Python
+# Spark SQL Session 만들기
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.master("local").appName("spark_sql").getOrCreate()
+
+# RDD로 DataFrame 생성
+movies = [
+    (1, "어벤져스", "마블", 2012, 4, 26),
+    (2, "슈펴맨", "DC", 2013, 6, 13),
+    (3, "배트맨", "DC", 2008, 8, 6),
+    (4, "겨울왕국", "디즈니", 2014, 1, 16),
+    (5, "아이언맨", "마블", 2008, 4, 30)
+]
+
+movie_schema = ["id", "name", "company", "year", "month", "day"]
+
+# DataFrame 생성
+df = spark.createDataFrame(data=movies, schema=movie_schema)
+
+# 전체 데이터 프레임 내용 확인(show())
+df.show()
+```
+
+* SQL 구조
+   1. SELECT: 컬럼 조회 하기 위한 쿼리 절
+   2. FROM: 테이블, 어떤 데이터프레임에서 데이터를 가져오는가
+   3. WHERE: 데이터가 조회되기 위한 조건
+
