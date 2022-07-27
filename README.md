@@ -599,15 +599,77 @@ rdd1.rightOuterJoin(rdd2).collect()
    '''
    paris.partitionBy(2, lambda x : x % 2).persist().glom().collect()
    ```
-   - 메모리에서 파티션
-   * Repartitions(), coalesce() 둘 다 파티션 개수를 조절하는 함수로 Shuffling을 동반하기 때문에 코스트가 높은 작업이다
-     - repartition()
-       - 파티션의 크기를 줄이거나 늘리는데 사용된다
-     - coalesce()
-       - 파티션의 크기를 줄이는데 사용된다
-       - 줄이는 작업의 경우 coalesce()가 더 효율적이다
-     - map(), flatMap()
-       - 키의 변형이 가능하기 때문에 데이터의 파티션이 변경될 여지가 있다
-     - mapValues(), flatMapValues()
-       - 파티션이 잘 정의 되어 있고, 파티션이 변경되기를 원하지 않을 경우 바람직하다
+- 메모리에서 파티션
+* Repartitions(), coalesce() 둘 다 파티션 개수를 조절하는 함수로 Shuffling을 동반하기 때문에 코스트가 높은 작업이다
+ - repartition()
+   - 파티션의 크기를 줄이거나 늘리는데 사용된다
+ - coalesce()
+   - 파티션의 크기를 줄이는데 사용된다
+   - 줄이는 작업의 경우 coalesce()가 더 효율적이다
+ - map(), flatMap()
+   - 키의 변형이 가능하기 때문에 데이터의 파티션이 변경될 여지가 있다
+ - mapValues(), flatMapValues()
+   - 파티션이 잘 정의 되어 있고, 파티션이 변경되기를 원하지 않을 경우 바람직하다
+
+* RDD 합친 후 추출하기
+
+   - 방법1
+   ```Python
+   movie.join(attendance)
+   movie.filter(RDD1, RDD2)
+   ```
+   - 방법2
+   ```Python
+   ft_movie = movie.filter(<RDD1>)
+   ft_att = attendance.filter(<관객수>)
+
+   filt_movie.join(filt_att)
+   ```
+   - 데이터를 걸러낸 후 Join 하기 때문에 셔플링을 최소화 할 수 있다
+* 데이터의 구조화가 잘 되어 있다면 자동으로 최적화가 가능하다
+   - 비 구조화된 데이터(Unstructed): 형식이 없는 데이터
+     - 로그 파일
+     - 이미지
+   - 준 구조화된 데이터(Semi Structured): 행과 열을 가짐
+     - CSV
+     - JSON
+     - XML
+   - 구조화된 데이터(Structured): 행과 열, 데이터 타입(스키마)를 갖는다
+     - 데이터 베이스
+
+* RDD와 구조화된 데이터의 차이
+  - RDD
+    - 데이터의 구조를 모르기 떄문에 데이터 다루는 것을 개발자에 의존한다
+    - map, flatMap, filter 등을 통해 사용자가 만든 function을 수행한다
+  - Structured DAta
+    - 데이터의 구조를 이미 알고 있어 어떤 task를 수행할지 정의만 하면 된다
+    - 최적화도 자동으로 일어난다
+
+* Spark SQL
+  - 스파크를 기반으로 구현된 하나의 패키지
+  - 스파크 프로그래밍 내부에서 관계형 처리(Join)
+  - 스키마의 정보를 이용해 자동으로 최적화가 가능하다
+  - 외부 데이터 세트(CSV, JSON, ...)를 사용하기 쉽게 한다
+  - 3가지 주된 API 존재
+    - SQL
+    - DataFrame
+    - Datasets
+  - 2개의 백엔드 컴포넌트
+    - Catalyst: 쿼리 최적화 엔진(파티션 및 셔플링 최적화)
+    - Tungsten: 시리얼라이저(데이터 용량 최적화)
+
+* DataFrame
+   - Spark Core에 RDD = Spark SQL DataFrame
+   - 테이블 데이터 세트
+   - RDD에 스키마가 적용된 데이터 세트
+   - RDD에 스키마를 정의한 다음 DataFrame으로 변형 가능
+   - CSV, JSON 등의 데이터를 받아 DataFrame으로 만들어 낼 수 있다
+
+* SparkSession
+   - Spark 구동 환경을 만든다
+   - Spark Core의 SparkContext = SPark SQL의 SparkSession
+
+* createOrReplaceTempView
+   - 데이터 프레임을 RDBMS의 테이블 처럼 사용하기 위해 위 함수를 이용해 tempoary view를 만들어줘야 한다
+   - Spark SQL을 사용할 수 있게 된다
 
